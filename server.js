@@ -56,19 +56,57 @@ app.post('/submit-review', (req, res) => {
   }
 });
 
-// View all reviews
+// View all reviews as HTML table
 app.get('/reviews', (req, res) => {
   if (!fs.existsSync(REVIEW_FILE)) {
-    return res.json([]);
+    return res.send('<h3>No reviews yet</h3>');
   }
 
   try {
     const rawData = fs.readFileSync(REVIEW_FILE, 'utf8').trim();
     const reviews = rawData ? JSON.parse(rawData) : [];
-    res.json(reviews);
+
+    let html = `
+      <html>
+        <head>
+          <title>All Reviews</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>User Reviews</h2>
+          <table>
+            <tr>
+              <th>User ID</th>
+              <th>Rating</th>
+              <th>Comment</th>
+              <th>Timestamp</th>
+            </tr>`;
+
+    for (const review of reviews) {
+      html += `
+        <tr>
+          <td>${review.userId}</td>
+          <td>${review.rating}</td>
+          <td>${review.comment}</td>
+          <td>${review.timestamp}</td>
+        </tr>`;
+    }
+
+    html += `
+          </table>
+        </body>
+      </html>
+    `;
+
+    res.send(html);
   } catch (err) {
     console.error("❌ Failed to read reviews.json:", err);
-    res.status(500).json({ error: 'Failed to read reviews' });
+    res.status(500).send('<h3>Error loading reviews</h3>');
   }
 });
 
