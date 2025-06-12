@@ -1,13 +1,32 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs');
+const mongoose = require('mongoose');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const REVIEW_FILE = path.join(__dirname, 'reviews.json');
+
+// MongoDB connection
+mongoose.connect('mongodb+srv://neeraj:NEERA1234@cluster0.cii2lea.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ Connected to MongoDB'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
+
+// Define review schema
+const reviewSchema = new mongoose.Schema({
+  userId: String,
+  rating: Number,
+  comment: String,
+  timestamp: {
+    type: String,
+    default: () => new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+  }
+});
+
+const Review = mongoose.model('Review', reviewSchema);
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -20,56 +39,32 @@ app.get('/', (req, res) => {
 });
 
 // Handle review submission
-app.post('/submit-review', (req, res) => {
+app.post('/submit-review', async (req, res) => {
   const { userId, rating, comment } = req.body;
 
   if (!userId || !rating || !comment) {
     return res.status(400).send('❌ Missing fields');
   }
 
-  const newReview = {
-    userId,
-    rating,
-    comment,
-    timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
-  };
-
-  let reviews = [];
-  if (fs.existsSync(REVIEW_FILE)) {
-    try {
-      const rawData = fs.readFileSync(REVIEW_FILE, 'utf8').trim();
-      reviews = rawData ? JSON.parse(rawData) : [];
-    } catch (err) {
-      console.error("❌ Failed to parse reviews.json:", err);
-      return res.status(500).send('❌ Error reading existing reviews');
-    }
-  }
-
-  reviews.push(newReview);
-
   try {
-    fs.writeFileSync(REVIEW_FILE, JSON.stringify(reviews, null, 2), 'utf8');
-    res.send('✅ Review saved successfully!');
+    const newReview = new Review({ userId, rating, comment });
+    await newReview.save();
+    res.send('✅ Review saved to MongoDB!');
   } catch (err) {
-    console.error("❌ Failed to write reviews.json:", err);
+    console.error("❌ Failed to save review:", err);
     res.status(500).send('❌ Failed to save review');
   }
 });
 
-// View all reviews as HTML table
-app.get('/reviews', (req, res) => {
-  if (!fs.existsSync(REVIEW_FILE)) {
-    return res.send('<h3>No reviews yet</h3>');
-  }
-
+// View all reviews in HTML table
+app.get('/reviews', async (req, res) => {
   try {
-    const rawData = fs.readFileSync(REVIEW_FILE, 'utf8').trim();
-    const reviews = rawData ? JSON.parse(rawData) : [];
+    const reviews = await Review.find().sort({ timestamp: -1 });
 
     let html = `
       <html>
         <head>
-          <title>All Reviews</title>
+          <title>User Reviews</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -89,23 +84,22 @@ app.get('/reviews', (req, res) => {
 
     for (const review of reviews) {
       html += `
-        <tr>
-          <td>${review.userId}</td>
-          <td>${review.rating}</td>
-          <td>${review.comment}</td>
-          <td>${review.timestamp}</td>
-        </tr>`;
+            <tr>
+              <td>${review.userId}</td>
+              <td>${review.rating}</td>
+              <td>${review.comment}</td>
+              <td>${review.timestamp}</td>
+            </tr>`;
     }
 
     html += `
           </table>
         </body>
-      </html>
-    `;
+      </html>`;
 
     res.send(html);
   } catch (err) {
-    console.error("❌ Failed to read reviews.json:", err);
+    console.error("❌ Error loading reviews:", err);
     res.status(500).send('<h3>Error loading reviews</h3>');
   }
 });
