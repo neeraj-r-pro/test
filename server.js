@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // MongoDB connection
-mongoose.connect('mongodb+srv://neeraj:NEERA1234@cluster0.cii2lea.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect('mongodb+srv://neeraj:NEERA1234@cluster0.cii2lea.mongodb.net/reviewDB?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -33,7 +33,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
 
-// Serve form
+// Serve review form
 app.get('/', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
@@ -59,17 +59,17 @@ app.post('/submit-review', async (req, res) => {
 // View all reviews in HTML table
 app.get('/reviews', async (req, res) => {
   try {
-    const reviews = await Review.find().sort({ timestamp: -1 });
+    const reviews = await Review.find().sort({ _id: -1 }); // latest first
 
     let html = `
       <html>
         <head>
           <title>User Reviews</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            th { background-color: #f4f4f4; }
+            body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f2f5; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+            th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+            th { background-color: #e0e0e0; }
           </style>
         </head>
         <body>
@@ -104,6 +104,7 @@ app.get('/reviews', async (req, res) => {
   }
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
