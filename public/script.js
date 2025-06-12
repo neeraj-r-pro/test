@@ -25,20 +25,20 @@ document.getElementById('reviewForm').addEventListener('submit', function (e) {
     return;
   }
 
-  fetch('https://test-z0lb.onrender.com/submit-review', {
+  fetch('/submit-review', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ userId, rating, comment })
   })
-    .then(response => response.text())
-    .then(message => {
-      alert(message);
+    .then(res => res.text())
+    .then(msg => {
+      alert(msg);
       document.getElementById('reviewForm').reset();
     })
     .catch(err => {
-      console.error('Error:', err);
-      alert("Failed to submit review.");
+      console.error(err);
+      alert("❌ Failed to submit review");
     });
 });
