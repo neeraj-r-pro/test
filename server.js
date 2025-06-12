@@ -5,45 +5,68 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const REVIEW_FILE = path.join(__dirname, 'reviews.json');
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(PUBLIC_DIR));
 
-// Serve review form on root route
+// Serve review form page
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'review.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
-// Handle POST request
+// Submit review
 app.post('/submit-review', (req, res) => {
   const { userId, rating, comment } = req.body;
+
+  if (!userId || !rating || !comment) {
+    return res.status(400).send('❌ Invalid review data');
+  }
+
   const reviewData = {
     userId,
     rating,
     comment,
-    timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
   };
 
-  const filePath = 'reviews.json';
+  let reviews = [];
 
-  // Check if file exists
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, '[\n');
+  if (fs.existsSync(REVIEW_FILE)) {
+    try {
+      const fileData = fs.readFileSync(REVIEW_FILE, 'utf8');
+      reviews = JSON.parse(fileData);
+    } catch (err) {
+      return res.status(500).send('❌ Failed to read review file');
+    }
   }
 
-  // Read existing content and handle comma placement
-  let existing = fs.readFileSync(filePath, 'utf8');
-  existing = existing.trim();
+  reviews.push(reviewData);
 
-  const isFirst = existing === '[';
+  try {
+    fs.writeFileSync(REVIEW_FILE, JSON.stringify(reviews, null, 2), 'utf8');
+    res.send('✅ Review saved successfully!');
+  } catch (err) {
+    res.status(500).send('❌ Failed to save review');
+  }
+});
 
-  const toAppend = (isFirst ? '' : ',') + '\n' + JSON.stringify(reviewData, null, 2);
+// View all reviews
+app.get('/reviews', (req, res) => {
+  if (!fs.existsSync(REVIEW_FILE)) {
+    return res.json([]);
+  }
 
-  fs.writeFileSync(filePath, existing + toAppend + '\n]', 'utf8');
-
-  res.send('✅ Review saved successfully!');
+  try {
+    const data = fs.readFileSync(REVIEW_FILE, 'utf8');
+    const reviews = data ? JSON.parse(data) : [];
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read reviews' });
+  }
 });
 
 // Start server

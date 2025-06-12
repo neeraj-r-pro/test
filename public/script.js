@@ -25,7 +25,7 @@ document.getElementById('reviewForm').addEventListener('submit', function (e) {
     return;
   }
 
-  fetch('/submit-review', {
+  fetch('https://test-z0lb.onrender.com//submit-review', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
