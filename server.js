@@ -31,27 +31,27 @@ app.post('/submit-review', (req, res) => {
     userId,
     rating,
     comment,
-    timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+    timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
   };
 
-  // Read existing reviews or start with an empty array
   let reviews = [];
   if (fs.existsSync(REVIEW_FILE)) {
     try {
-      const data = fs.readFileSync(REVIEW_FILE, 'utf8');
-      reviews = JSON.parse(data);
+      const rawData = fs.readFileSync(REVIEW_FILE, 'utf8').trim();
+      reviews = rawData ? JSON.parse(rawData) : [];
     } catch (err) {
+      console.error("❌ Failed to parse reviews.json:", err);
       return res.status(500).send('❌ Error reading existing reviews');
     }
   }
 
-  // Add new review and save
   reviews.push(newReview);
+
   try {
     fs.writeFileSync(REVIEW_FILE, JSON.stringify(reviews, null, 2), 'utf8');
     res.send('✅ Review saved successfully!');
   } catch (err) {
-    console.error(err);
+    console.error("❌ Failed to write reviews.json:", err);
     res.status(500).send('❌ Failed to save review');
   }
 });
@@ -63,14 +63,15 @@ app.get('/reviews', (req, res) => {
   }
 
   try {
-    const data = fs.readFileSync(REVIEW_FILE, 'utf8');
-    const reviews = JSON.parse(data);
+    const rawData = fs.readFileSync(REVIEW_FILE, 'utf8').trim();
+    const reviews = rawData ? JSON.parse(rawData) : [];
     res.json(reviews);
   } catch (err) {
+    console.error("❌ Failed to read reviews.json:", err);
     res.status(500).json({ error: 'Failed to read reviews' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(` Server running at http://localhost:${PORT}`);
+  console.log(`✅ Server running at http://localhost:${PORT}`);
 });
