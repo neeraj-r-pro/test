@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 
+// Constants
 const app = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -13,15 +14,16 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(PUBLIC_DIR));
 
-// Serve review form page
+// Route: Serve review form
 app.get('/', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
-// Submit review
+// Route: Submit review
 app.post('/submit-review', (req, res) => {
   const { userId, rating, comment } = req.body;
 
+  // Validate input
   if (!userId || !rating || !comment) {
     return res.status(400).send('❌ Invalid review data');
   }
@@ -35,36 +37,39 @@ app.post('/submit-review', (req, res) => {
 
   let reviews = [];
 
-  if (fs.existsSync(REVIEW_FILE)) {
-    try {
+  // Read existing reviews
+  try {
+    if (fs.existsSync(REVIEW_FILE)) {
       const fileData = fs.readFileSync(REVIEW_FILE, 'utf8');
-      reviews = JSON.parse(fileData);
-    } catch (err) {
-      return res.status(500).send('❌ Failed to read review file');
+      reviews = JSON.parse(fileData || '[]');
     }
+  } catch (err) {
+    console.error('Error reading review file:', err);
+    return res.status(500).send('❌ Failed to read review file');
   }
 
+  // Add new review
   reviews.push(reviewData);
 
+  // Save to file
   try {
     fs.writeFileSync(REVIEW_FILE, JSON.stringify(reviews, null, 2), 'utf8');
     res.send('✅ Review saved successfully!');
   } catch (err) {
+    console.error('Error writing review file:', err);
     res.status(500).send('❌ Failed to save review');
   }
 });
 
-// View all reviews
+// Route: View all reviews
 app.get('/reviews', (req, res) => {
-  if (!fs.existsSync(REVIEW_FILE)) {
-    return res.json([]);
-  }
-
   try {
+    if (!fs.existsSync(REVIEW_FILE)) return res.json([]);
     const data = fs.readFileSync(REVIEW_FILE, 'utf8');
-    const reviews = data ? JSON.parse(data) : [];
+    const reviews = JSON.parse(data || '[]');
     res.json(reviews);
   } catch (err) {
+    console.error('Error loading reviews:', err);
     res.status(500).json({ error: 'Failed to read reviews' });
   }
 });
