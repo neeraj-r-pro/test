@@ -8,12 +8,10 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // MongoDB connection
-mongoose.connect('mongodb+srv://neeraj:NEERA1234@cluster0.cii2lea.mongodb.net/reviewDB?retryWrites=true&w=majority&appName=Cluster0', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+mongoose.connect('mongodb+srv://neeraj:NEERA1234@cluster0.mongodb.net/DATABASE_NAME?retryWrites=true&w=majority&appName=Cluster0')
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
 
 // Define review schema
 const reviewSchema = new mongoose.Schema({
